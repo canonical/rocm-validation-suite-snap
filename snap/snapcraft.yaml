@@ -27,8 +27,8 @@ description: |
   supports its execution.
 
 website: https://rocm.docs.amd.com/projects/ROCmValidationSuite/en/latest/
-contact: https://github.com/pedro-avalos/rocm-validation-suite-snap/issues
-issues: https://github.com/pedro-avalos/rocm-validation-suite-snap/issues
+contact: https://github.com/canonical/rocm-validation-suite-snap/issues
+issues: https://github.com/canonical/rocm-validation-suite-snap/issues
 source-code: https://github.com/ROCm/ROCmValidationSuite
 
 base: core24
