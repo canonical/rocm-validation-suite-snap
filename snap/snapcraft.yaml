@@ -7,10 +7,6 @@ description: |
   NOTE: This is a wrapper of the official package, but it is not verified,
   affiliated with, or supported by AMD.
 
-  NOTE: Currently, the snap only works in `--devmode`. This is not recommended
-  unless you know what you are doing. To learn more about the confinement
-  levels, read https://snapcraft.io/docs/snap-confinement.
-
   The ROCm Validation Suite (RVS) is a system validation and diagnostics tool
   for monitoring, stress testing, detecting and troubleshooting issues that
   affects the functionality and performance of AMD GPU(s) operating in a
