@@ -1,0 +1,27 @@
+name: Update
+on:
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync version with upstream
+    environment: "Main Branch"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync version with upstream
+        uses: snapcrafters/ci/sync-version@main
+        with:
+          bot-email: actions@github.com
+          bot-name: GitHub Actions
+          token: ${{ secrets.PAT }}
+          update-script: |
+            VERSION=$(curl -sL https://api.github.com/repos/ROCm/ROCmValidationSuite/releases \
+              | jq -r .[0].tag_name | tr -d 'rocm-'
+            )
+            sed -i 's/^\(version: \).*$/\1'"$VERSION"'/' snap/snapcraft.yaml
