@@ -51,6 +51,7 @@ apps:
       - power-control
       - process-control
       - removable-media
+      - system-observe
 
 package-repositories:
   - type: apt
