@@ -45,6 +45,7 @@ apps:
     plugs:
       - hardware-observe
       - home
+      - network
       - network-bind
       - network-control
       - opengl
