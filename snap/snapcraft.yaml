@@ -35,6 +35,10 @@ compression: lzo
 platforms:
   amd64:
 
+plugs:
+  shared-memory:
+    private: true
+
 apps:
   rocm-validation-suite:
     command: opt/rocm-${SNAPCRAFT_PROJECT_VERSION}/bin/rvs
