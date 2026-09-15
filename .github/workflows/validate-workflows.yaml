@@ -3,10 +3,10 @@ name: Validate Workflows
 on:
   push:
     branches: [main]
-    paths: [".github/workflows/*", ".github/actions/*"]
+    paths: [".github/workflows/*", ".github/actions/**"]
   pull_request:
     branches: ["**"]
-    paths: [".github/workflows/*", ".github/actions/*"]
+    paths: [".github/workflows/*", ".github/actions/**"]
 
 permissions: {}
 
