@@ -1,0 +1,21 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	extends: [
+		"config:recommended",
+	],
+	customManagers: [
+		{
+			customType: "regex",
+			description: "Update ROCm Validation Suite in snapcraft.yaml",
+			managerFilePatterns: ["/(^|/)snapcraft\\.yaml$/"],
+			matchStrings: [
+				"version:\\s*(?<currentValue>[^\\s]+)"
+			],
+			datasourceTemplate: "github-releases",
+			depNameTemplate: "ROCm/ROCmValidationSuite",
+			// Releases are tagged rocm-<semver> (e.g. rocm-7.2.4)
+			extractVersionTemplate: "^rocm-(?<version>.*)$",
+			versioningTemplate: "semver",
+		},
+	],
+}
