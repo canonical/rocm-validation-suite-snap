@@ -3,6 +3,9 @@
 	extends: [
 		"config:recommended",
 	],
+	"pre-commit": {
+		enabled: true,
+	},
 	customManagers: [
 		{
 			customType: "regex",
@@ -16,6 +19,24 @@
 			// Releases are tagged rocm-<semver> (e.g. rocm-7.2.4)
 			extractVersionTemplate: "^rocm-(?<version>.*)$",
 			versioningTemplate: "semver",
+		},
+		{
+			customType: "regex",
+			description: "Update the zizmor version used by the zizmor GitHub Action",
+			managerFilePatterns: ["/(^|/)\\.github/workflows/validate-workflows\\.yaml$/"],
+			matchStrings: [
+				"zizmorcore/zizmor-action@[a-f0-9]+[\\s\\S]*?version:\\s*(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+			],
+			datasourceTemplate: "github-releases",
+			depNameTemplate: "zizmorcore/zizmor",
+			versioningTemplate: "semver",
+		},
+	],
+	packageRules: [
+		{
+			matchPackageNames: ["zizmorcore/zizmor-pre-commit", "zizmorcore/zizmor"],
+			groupName: "zizmor",
+			groupSlug: "zizmor",
 		},
 	],
 }
