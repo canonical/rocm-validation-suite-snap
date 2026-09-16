@@ -1,0 +1,46 @@
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      to-channel:
+        description: Channel to promote to
+        required: true
+        default: latest/stable
+        type: choice
+        options:
+          - latest/stable
+          - latest/candidate
+          - latest/beta
+      from-channel:
+        description: Channel to promote from
+        required: true
+        default: latest/beta
+        type: choice
+        options:
+          - latest/candidate
+          - latest/beta
+          - latest/edge
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promote:
+    name: Promote
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install snapcraft
+        run: sudo snap install --classic snapcraft
+      - name: Promote snap
+        run: |
+          snapcraft promote --yes rocm-validation-suite \
+          --to-channel "$SNAPCRAFT_TO_CHANNEL" \
+          --from-channel "$SNAPCRAFT_FROM_CHANNEL"
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          SNAPCRAFT_TO_CHANNEL: ${{ inputs.to-channel }}
+          SNAPCRAFT_FROM_CHANNEL: ${{ inputs.from-channel }}
