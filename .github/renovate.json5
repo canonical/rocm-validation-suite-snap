@@ -38,5 +38,10 @@
 			groupName: "zizmor",
 			groupSlug: "zizmor",
 		},
+		{
+			matchPackageNames: ["rhysd/actionlint"],
+			groupName: "actionlint",
+			groupSlug: "actionlint",
+		},
 	],
 }
