@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+  push:
+    branches: [main]
+    paths: [".github/workflows/ci.yaml", "snap/**"]
+  pull_request:
+    branches: ["**"]
+    paths: [".github/workflows/ci.yaml", "snap/**"]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: self-hosted-linux-amd64-noble-xlarge
+    timeout-minutes: 600
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pack
+        id: snapcraft
+        uses: canonical/craft-actions/snapcraft/pack@acd2f2e61c7563b38ba89390ca0e910fa7d2784f # v0.1.1
+      - name: Upload snap artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: ${{ steps.snapcraft.outputs.snap }}
+          if-no-files-found: error
+          name: rvs-snap
+          overwrite: true
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # TODO: Use general queue once infra issues are resolved
+          - job_queue: 202604-38596
+            distro: noble
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Create job.yaml
+        run: |
+          sed -e "s/\$JOB_QUEUE/$JOB_QUEUE/g" \
+              -e "s/\$DISTRO/$DISTRO/g" \
+              -e "s/\$RUN_ID/$RUN_ID/g" \
+              -e "s/\$JOB_INDEX/$JOB_INDEX/g" \
+              -e "s/\$RUN_ATTEMPT/$RUN_ATTEMPT/g" \
+              .github/testflinger/job.yaml.in > job.yaml
+        env:
+          JOB_QUEUE: ${{ matrix.job_queue }}
+          DISTRO: ${{ matrix.distro }}
+          RUN_ID: ${{ github.run_id }}
+          JOB_INDEX: ${{ strategy.job-index }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+      - name: Set up testflinger
+        uses: canonical/testflinger/.github/actions/testflinger-setup@8ae8e11c86486f5ff0b053cedbedd78eb8573012 # submit/v1.4.9
+      - name: Create secret
+        id: secret
+        run: testflinger-cli secret write --single-use "rvs-snap/$RUN_ID/$JOB_INDEX/$RUN_ATTEMPT/gh-token" "$GH_TOKEN"
+        env:
+          RUN_ID: ${{ github.run_id }}
+          JOB_INDEX: ${{ strategy.job-index }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          GH_TOKEN: ${{ github.token }}
+          TESTFLINGER_CLIENT_ID: ${{ secrets.TESTFLINGER_CLIENT_ID }}
+          TESTFLINGER_SECRET_KEY: ${{ secrets.TESTFLINGER_SECRET_KEY }}
+      - name: Submit job
+        uses: canonical/testflinger/.github/actions/submit@8ae8e11c86486f5ff0b053cedbedd78eb8573012 # submit/v1.4.9
+        with:
+          poll: true
+          job-path: job.yaml
+          client-id: ${{ secrets.TESTFLINGER_CLIENT_ID }}
+          secret-key: ${{ secrets.TESTFLINGER_SECRET_KEY }}
+      - name: Delete secret
+        if: ${{ always() && steps.secret.conclusion == 'success' }}
+        continue-on-error: true
+        run: testflinger-cli secret delete "rvs-snap/$RUN_ID/$JOB_INDEX/$RUN_ATTEMPT/gh-token"
+        env:
+          RUN_ID: ${{ github.run_id }}
+          JOB_INDEX: ${{ strategy.job-index }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          TESTFLINGER_CLIENT_ID: ${{ secrets.TESTFLINGER_CLIENT_ID }}
+          TESTFLINGER_SECRET_KEY: ${{ secrets.TESTFLINGER_SECRET_KEY }}
+  release:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [build, test]
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download snap artifact
+        id: download
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: rvs-snap
+      - name: Install snapcraft
+        run: sudo snap install --classic snapcraft
+      - name: Release
+        run: snapcraft upload -v "$DOWNLOAD_PATH"/*.snap --release latest/beta
+        env:
+          DOWNLOAD_PATH: ${{ steps.download.outputs.download-path }}
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
