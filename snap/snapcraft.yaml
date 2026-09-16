@@ -64,13 +64,13 @@ package-repositories:
     components: [main]
     suites: [noble]
     key-id: CA8BB4727A47B4D09B4EE8969386B48A1A693C5C
-    url: https://repo.radeon.com/amdgpu/latest/ubuntu
+    url: https://repo.radeon.com/amdgpu/6.3/ubuntu
   - type: apt
     architectures: [amd64]
     components: [main]
     suites: [noble]
     key-id: CA8BB4727A47B4D09B4EE8969386B48A1A693C5C
-    url: https://repo.radeon.com/rocm/apt/latest
+    url: https://repo.radeon.com/rocm/apt/6.3
     priority: 600
 
 parts:
@@ -83,8 +83,8 @@ parts:
     source: https://github.com/ROCm/ROCmValidationSuite.git
     source-type: git
     source-tag: rocm-${SNAPCRAFT_PROJECT_VERSION}
-    build-snaps: [cmake]
     build-packages:
+      - cmake
       - doxygen
       - hipblaslt-dev
       - hiprand-dev
