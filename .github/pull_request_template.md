@@ -15,7 +15,6 @@ Closes #...
 
 <!-- Describe the tests you ran to verify your changes. -->
 
-- Unit tests
 - Manual testing steps:
 
   1. ...
