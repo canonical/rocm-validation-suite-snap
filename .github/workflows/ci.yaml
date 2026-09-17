@@ -46,8 +46,6 @@ jobs:
         include:
           - job_queue: radeon-rx7000
             distro: noble
-          - job_queue: amd-threadripper-9970x
-            distro: noble
     permissions:
       contents: read
       actions: read
