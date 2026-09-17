@@ -1,7 +1,7 @@
 name: rocm-validation-suite
 title: ROCm Validation Suite
 license: MIT
-version: 6.3.0
+version: 6.4.4
 summary: A system validation and diagnostics tool for AMD GPUs
 description: |
   NOTE: This is a wrapper of the official package, but it is not verified,
@@ -64,13 +64,13 @@ package-repositories:
     components: [main]
     suites: [noble]
     key-id: CA8BB4727A47B4D09B4EE8969386B48A1A693C5C
-    url: https://repo.radeon.com/amdgpu/6.3/ubuntu
+    url: https://repo.radeon.com/amdgpu/6.4.4/ubuntu
   - type: apt
     architectures: [amd64]
     components: [main]
     suites: [noble]
     key-id: CA8BB4727A47B4D09B4EE8969386B48A1A693C5C
-    url: https://repo.radeon.com/rocm/apt/6.3
+    url: https://repo.radeon.com/rocm/apt/6.4.4
     priority: 600
 
 parts:
