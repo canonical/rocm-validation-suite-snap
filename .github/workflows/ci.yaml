@@ -44,8 +44,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # TODO: Use general queue once infra issues are resolved
-          - job_queue: 202604-38596
+          - job_queue: amd-custom-build-for-bullwinkle
             distro: noble
     permissions:
       contents: read
