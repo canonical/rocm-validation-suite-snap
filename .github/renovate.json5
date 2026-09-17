@@ -9,7 +9,7 @@
 	customManagers: [
 		{
 			customType: "regex",
-			description: "Update ROCm Validation Suite in snapcraft.yaml",
+			description: "Update ROCm Validation Suite version in snapcraft.yaml",
 			managerFilePatterns: ["/(^|/)snapcraft\\.yaml$/"],
 			matchStrings: [
 				"version:\\s*(?<currentValue>[^\\s]+)"
@@ -19,6 +19,36 @@
 			// Releases are tagged rocm-<semver> (e.g. rocm-7.2.4)
 			extractVersionTemplate: "^rocm-(?<version>.*)$",
 			versioningTemplate: "semver",
+		},
+		{
+			customType: "regex",
+			description: "Update AMD GPU repository version in snapcraft.yaml",
+			managerFilePatterns: ["/(^|/)snapcraft\\.yaml$/"],
+			matchStrings: [
+				"url:\\s*https://repo\\.radeon\\.com/amdgpu/(?<currentValue>\\d+\\.\\d+(?:\\.\\d+)?)"
+			],
+			datasourceTemplate: "github-releases",
+			depNameTemplate: "ROCm/ROCmValidationSuite",
+			extractVersionTemplate: "^rocm-(?<version>.*)$",
+			versioningTemplate: "semver-coerced",
+			// The repository URL drops the patch component only when it is 0
+			// (e.g. rocm-6.3.0 -> 6.3, rocm-7.2.4 -> 7.2.4).
+			autoReplaceStringTemplate: "url: https://repo.radeon.com/amdgpu/{{{newMajor}}}.{{{newMinor}}}{{#unless (equals newPatch \"0\")}}.{{{newPatch}}}{{/unless}}",
+		},
+		{
+			customType: "regex",
+			description: "Update ROCm repository version in snapcraft.yaml",
+			managerFilePatterns: ["/(^|/)snapcraft\\.yaml$/"],
+			matchStrings: [
+				"url:\\s*https://repo\\.radeon\\.com/rocm/apt/(?<currentValue>\\d+\\.\\d+(?:\\.\\d+)?)"
+			],
+			datasourceTemplate: "github-releases",
+			depNameTemplate: "ROCm/ROCmValidationSuite",
+			extractVersionTemplate: "^rocm-(?<version>.*)$",
+			versioningTemplate: "semver-coerced",
+			// The repository URL drops the patch component only when it is 0
+			// (e.g. rocm-6.3.0 -> 6.3, rocm-7.2.4 -> 7.2.4).
+			autoReplaceStringTemplate: "url: https://repo.radeon.com/rocm/apt/{{{newMajor}}}.{{{newMinor}}}{{#unless (equals newPatch \"0\")}}.{{{newPatch}}}{{/unless}}",
 		},
 		{
 			customType: "regex",
@@ -33,6 +63,11 @@
 		},
 	],
 	packageRules: [
+		{
+			matchPackageNames: ["ROCm/ROCmValidationSuite"],
+			groupName: "ROCm Validation Suite",
+			groupSlug: "rocm-validation-suite",
+		},
 		{
 			matchPackageNames: ["zizmorcore/zizmor-pre-commit", "zizmorcore/zizmor"],
 			groupName: "zizmor",

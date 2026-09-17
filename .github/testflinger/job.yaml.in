@@ -1,0 +1,77 @@
+job_queue: $JOB_QUEUE
+provision_data:
+  distro: $DISTRO
+output_timeout: 3600
+test_data:
+  secrets:
+    GH_TOKEN: rvs-snap/$RUN_ID/$JOB_INDEX/$RUN_ATTEMPT/gh-token
+  test_cmds: |
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    # Install helper commands
+    export TOOLS_PATH=tools
+    curl -Ls -o install_tools.sh https://raw.githubusercontent.com/canonical/certification-lab-ci-tools/refs/heads/main/install_tools.sh
+    source install_tools.sh $TOOLS_PATH
+
+    # Update system
+    _run sudo apt-get -q update
+    _run sudo apt-get -q upgrade -y
+    wait-for-packages-complete
+
+    # Update snaps
+    _run sudo snap refresh --no-wait
+    wait-for-snap-changes
+
+    # Set up permissions
+    DEVICE_USER=${DEVICE_USER:-ubuntu}
+    _run sudo usermod -aG lxd $DEVICE_USER
+    _run sudo usermod -aG render,video $DEVICE_USER
+
+    # Install GitHub CLI
+    _run bash -c 'type -p wget >/dev/null || (sudo apt-get update -q && sudo apt-get -q install -y wget)'
+    _run sudo mkdir -p -m 755 /etc/apt/keyrings
+    _run bash -c 'wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null'
+    _run sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    _run sudo mkdir -p -m 755 /etc/apt/sources.list.d
+    _run bash -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null'
+    _run sudo apt-get -q update
+    _run sudo apt-get -q install -y gh
+    wait-for-packages-complete
+
+    # Restart
+    _run sudo reboot
+    wait-for-ssh --allow-degraded
+
+    # System information
+    _run lscpu | egrep -i 'architecture|model name'
+    _run lspci -nnk | grep -i AMD
+    _run free -h
+    _run df -h --sync -T -x tmpfs
+    _run grep -e VERSION /etc/os-release
+    _run uname -a
+
+    # Installed packages
+    _run dpkg-query -W
+    _run snap list
+
+    # Fetch ROCm Validation Suite from GitHub CI artifact
+    printenv GH_TOKEN > gh_token.txt
+    _put gh_token.txt :
+    _run "gh auth login --with-token < gh_token.txt"
+    _run gh run download --repo canonical/rocm-validation-suite-snap --name rvs-snap $RUN_ID
+
+    # Install ROCm Validation Suite
+    _run sudo snap install --no-wait --dangerous rocm-validation-suite*.snap
+    wait-for-snap-changes
+
+    # Connect interfaces
+    _run sudo snap connect --no-wait rocm-validation-suite:hardware-observe
+    wait-for-snap-changes
+    _run sudo snap connect --no-wait rocm-validation-suite:process-control
+    wait-for-snap-changes
+
+    # Run ROCm Validation Suite
+    _run rocm-validation-suite --version
+    _run rocm-validation-suite -g
+    # TODO: Add sanity checks (-r) once version is at least 7.2.4...

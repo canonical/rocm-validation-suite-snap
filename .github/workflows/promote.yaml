@@ -1,0 +1,67 @@
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      to-channel:
+        description: Channel to promote to
+        required: true
+        default: latest/stable
+        type: choice
+        options:
+          - latest/stable
+          - latest/candidate
+          - latest/beta
+      from-channel:
+        description: Channel to promote from
+        required: true
+        default: latest/beta
+        type: choice
+        options:
+          - latest/candidate
+          - latest/beta
+          - latest/edge
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promote:
+    name: Promote
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs
+        run: |
+          rank() {
+            case "$1" in
+              latest/edge) echo 0 ;;
+              latest/beta) echo 1 ;;
+              latest/candidate) echo 2 ;;
+              latest/stable) echo 3 ;;
+              *) echo "::error::Unknown channel: $1"; return 1 ;;
+            esac
+          }
+          to_rank="$(rank "$TO_CHANNEL")"
+          from_rank="$(rank "$FROM_CHANNEL")"
+          if [ "$to_rank" -le "$from_rank" ]; then
+            echo "::error::Cannot promote from $FROM_CHANNEL to $TO_CHANNEL."
+            exit 1
+          fi
+          echo "Promoting from $FROM_CHANNEL to $TO_CHANNEL"
+        env:
+          TO_CHANNEL: ${{ inputs.to-channel }}
+          FROM_CHANNEL: ${{ inputs.from-channel }}
+      - name: Install snapcraft
+        run: sudo snap install --classic snapcraft
+      - name: Promote snap
+        run: |
+          snapcraft promote --yes rocm-validation-suite \
+            --to-channel "$TO_CHANNEL" \
+            --from-channel "$FROM_CHANNEL"
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          TO_CHANNEL: ${{ inputs.to-channel }}
+          FROM_CHANNEL: ${{ inputs.from-channel }}
