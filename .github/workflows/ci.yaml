@@ -44,7 +44,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - job_queue: amd-custom-build-for-bullwinkle
+          - job_queue: radeon-rx7000
+            distro: noble
+          - job_queue: amd-threadripper-9970x
             distro: noble
     permissions:
       contents: read
