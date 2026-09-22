@@ -14,6 +14,13 @@ computing environments.
 sudo snap install rocm-validation-suite
 ```
 
+This snap consumes ROCm runtime libraries provided by `rocm-inference`, which should be installed automatically, but might need a manual interface connection:
+
+```shell
+sudo snap install rocm-inference
+sudo snap connect rocm-validation-suite:rocm rocm-inference:runtime
+```
+
 [![Get it from the Snap Store](https://snapcraft.io/en/dark/install.svg)][snap-link]
 
 ([Don't have snapd installed?][snapd-setup])

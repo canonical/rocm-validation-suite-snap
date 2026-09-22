@@ -44,18 +44,25 @@ The above command will create a file in the format of
 sudo snap install --dangerous rocm-validation-suite*.snap
 ```
 
-The ROCm Validation Suite snap plugs several super-privileged interfaces that
-are not auto-connected for a locally-built snap installed with `--dangerous`.
+The ROCm Validation Suite uses the runtime supplied by the `rocm-inference` content snap. Connect it after installing both snaps:
+
+```shell
+sudo snap install rocm-inference
+sudo snap connect rocm-validation-suite:rocm rocm-inference:runtime
+```
+
+The snap also plugs privileged interfaces that may not auto-connect for a locally-built snap installed with `--dangerous`.
 Check the current state and connect the interfaces you need:
 
 ```shell
 # See which interfaces are connected
 snap connections rocm-validation-suite
-# Interfaces you may need to manually connect
+
+# Interfaces required for GPU enumeration and ROCm worker initialization
 sudo snap connect rocm-validation-suite:hardware-observe
-sudo snap connect rocm-validation-suite:network-control
-sudo snap connect rocm-validation-suite:power-control
 sudo snap connect rocm-validation-suite:process-control
+
+# Interfaces you may need in specific circumstances
 sudo snap connect rocm-validation-suite:removable-media
 sudo snap connect rocm-validation-suite:system-observe
 ```
