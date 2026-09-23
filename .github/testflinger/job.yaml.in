@@ -66,6 +66,8 @@ test_data:
     wait-for-snap-changes
 
     # Connect interfaces
+    _run sudo snap connect --no-wait rocm-validation-suite:rocm rocm-inference:runtime
+    wait-for-snap-changes
     _run sudo snap connect --no-wait rocm-validation-suite:hardware-observe
     wait-for-snap-changes
     _run sudo snap connect --no-wait rocm-validation-suite:process-control

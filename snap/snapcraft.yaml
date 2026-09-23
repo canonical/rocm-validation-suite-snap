@@ -1,7 +1,7 @@
 name: rocm-validation-suite
 title: ROCm Validation Suite
 license: MIT
-version: 6.4.4
+version: '1.7.0'
 summary: A system validation and diagnostics tool for AMD GPUs
 description: |
   NOTE: This is a wrapper of the official package, but it is not verified,
@@ -27,7 +27,7 @@ contact: https://github.com/canonical/rocm-validation-suite-snap/issues
 issues: https://github.com/canonical/rocm-validation-suite-snap/issues
 source-code: https://github.com/ROCm/ROCmValidationSuite
 
-base: core24
+base: core26
 grade: stable
 confinement: strict
 compression: lzo
@@ -38,78 +38,84 @@ platforms:
 plugs:
   shared-memory:
     private: true
+  rocm:
+    interface: content
+    content: rocm-inference-10-0-2604
+    target: $SNAP/opt/rocm
+    default-provider: rocm-inference
 
 apps:
   rocm-validation-suite:
-    command: opt/rocm-${SNAPCRAFT_PROJECT_VERSION}/bin/rvs
+    command: opt/rocm-validation-suite/bin/rvs
     environment:
-      LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/opt/rocm-${SNAPCRAFT_PROJECT_VERSION}/lib
-      PATH: $PATH:$SNAP/opt/rocm-${SNAPCRAFT_PROJECT_VERSION}/bin
-    extensions: [gnome]
+      LD_LIBRARY_PATH: $SNAP/opt/rocm-validation-suite/lib:$SNAP/opt/rocm/lib:$SNAP/opt/rocm/lib/llvm/lib:$SNAP/opt/rocm/lib/rocm_sysdeps/lib:$LD_LIBRARY_PATH
+      PATH: $SNAP/opt/rocm-validation-suite/bin:$SNAP/opt/rocm/bin:$SNAP/opt/rocm/lib/llvm/bin:$PATH
+      ROCM_PATH: $SNAP/opt/rocm
+      HIP_PATH: $SNAP/opt/rocm
+      HIP_DEVICE_LIB_PATH: $SNAP/opt/rocm/lib/llvm/amdgcn/bitcode
+    extensions: [gpu]
     plugs:
       - hardware-observe
       - home
-      - network
-      - network-bind
-      - network-control
       - opengl
-      - power-control
       - process-control
       - removable-media
+      - rocm
       - system-observe
-
-package-repositories:
-  - type: apt
-    architectures: [amd64]
-    components: [main]
-    suites: [noble]
-    key-id: CA8BB4727A47B4D09B4EE8969386B48A1A693C5C
-    url: https://repo.radeon.com/amdgpu/6.4.4/ubuntu
-  - type: apt
-    architectures: [amd64]
-    components: [main]
-    suites: [noble]
-    key-id: CA8BB4727A47B4D09B4EE8969386B48A1A693C5C
-    url: https://repo.radeon.com/rocm/apt/6.4.4
-    priority: 600
 
 parts:
   rocm-validation-suite:
     plugin: cmake
-    cmake-parameters:
-      - -DROCM_PATH=/opt/rocm-${SNAPCRAFT_PROJECT_VERSION}
-      - -DCMAKE_INSTALL_PREFIX=/opt/rocm-${SNAPCRAFT_PROJECT_VERSION}
-      - -DCPACK_PACKAGING_INSTALL_PREFIX=/opt/rocm-${SNAPCRAFT_PROJECT_VERSION}
+
     source: https://github.com/ROCm/ROCmValidationSuite.git
     source-type: git
-    source-tag: rocm-${SNAPCRAFT_PROJECT_VERSION}
+    source-tag: v${SNAPCRAFT_PROJECT_VERSION}
+    source-depth: 1
+    source-submodules:
+      - external/TransferBench
+
+    build-snaps:
+      - rocm-inference/latest/stable
+
     build-packages:
-      - cmake
-      - doxygen
-      - hipblaslt-dev
-      - hiprand-dev
+      - jq
+      - libnuma-dev
       - libpci-dev
-      - libpci3
       - libyaml-cpp-dev
-      - rocblas-dev
-      - rocm-dev
-      - rocrand-dev
-      - unzip
-    stage-packages:
-      - hipblaslt
-      - hiprand
-      - libproxy1v5
-      - libyaml-cpp0.8
-      - rocblas
-      - rocm-smi-lib
-      - rocrand
-    stage:
-      - -opt/amdgpu
-      - -opt/rocm-${SNAPCRAFT_PROJECT_VERSION}/lib/libhiprtc.so*
-      - -opt/rocm-${SNAPCRAFT_PROJECT_VERSION}/lib/liboam.so*
-      - -opt/rocm-${SNAPCRAFT_PROJECT_VERSION}/lib/librocm-core.so*
-      - -usr/include/ncursesw
-      - -usr/lib/x86_64-linux-gnu/libform.so*
-      - -usr/lib/x86_64-linux-gnu/libmenu.so*
-      - -usr/lib/x86_64-linux-gnu/libncurses.so*
-      - -usr/lib/x86_64-linux-gnu/libpanel.so*
+
+    build-environment:
+      - ROCM_PATH: /snap/rocm-inference/current/opt/rocm
+      - HIP_PATH: $ROCM_PATH
+      - HIPCC_PATH: $ROCM_PATH
+      - HIP_DEVICE_LIB_PATH: $ROCM_PATH/lib/llvm/amdgcn/bitcode
+      - PATH: $ROCM_PATH/bin:$ROCM_PATH/lib/llvm/bin:$PATH
+      - LD_LIBRARY_PATH: $ROCM_PATH/lib:$ROCM_PATH/lib/llvm/lib:$ROCM_PATH/lib/rocm_sysdeps/lib:${LD_LIBRARY_PATH:-}
+
+    override-pull: |
+      craftctl default
+      GPU_FLAGS=$(
+        jq -er '.dist_amdgpu_targets' "$ROCM_PATH/share/therock/dist_info.json" \
+        | tr ';' '\n' \
+        | xargs -n1 printf -- '--offload-arch=%s '
+      )
+      test -n "$GPU_FLAGS"
+      sed -i \
+        "s|^set(HCC_CXX_FLAGS .*)|set(HCC_CXX_FLAGS \"$GPU_FLAGS\")|" \
+        "$CRAFT_PART_SRC/CMakeLists.txt"
+
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/opt/rocm-validation-suite
+      - -DCPACK_PACKAGING_INSTALL_PREFIX=/opt/rocm-validation-suite
+      - -DROCM_PATH=$ROCM_PATH
+      - -DROCM_MAJOR_VERSION=10
+      - -DFETCH_ROCMPATH_FROM_ROCMCORE=OFF
+      - -DRVS_BUILD_TESTS=OFF
+      - -DBUILD_TRANSFERBENCH_CLI=OFF
+      - '-DCMAKE_PREFIX_PATH="$ROCM_PATH;$ROCM_PATH/lib/rocm_sysdeps"'
+
+    prime:
+      - -opt/rocm-validation-suite/include
+      - -opt/rocm-validation-suite/lib/cmake
+      - -opt/rocm-validation-suite/share/man
+      - -opt/rocm-validation-suite/share/rocm-validation-suite/userguide
