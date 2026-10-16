@@ -20,17 +20,6 @@
 			extractVersionTemplate: "^v(?<version>.*)$",
 			versioningTemplate: "semver",
 		},
-		{
-			customType: "regex",
-			description: "Update the zizmor version used by the zizmor GitHub Action",
-			managerFilePatterns: ["/(^|/)\\.github/workflows/validate-workflows\\.yaml$/"],
-			matchStrings: [
-				"zizmorcore/zizmor-action@[a-f0-9]+[\\s\\S]*?version:\\s*(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
-			],
-			datasourceTemplate: "github-releases",
-			depNameTemplate: "zizmorcore/zizmor",
-			versioningTemplate: "semver",
-		},
 	],
 	packageRules: [
 		{
@@ -39,7 +28,7 @@
 			groupSlug: "rocm-validation-suite",
 		},
 		{
-			matchPackageNames: ["zizmorcore/zizmor-pre-commit", "zizmorcore/zizmor"],
+			matchPackageNames: ["zizmorcore/zizmor-pre-commit", "ghcr.io/zizmorcore/zizmor"],
 			groupName: "zizmor",
 			groupSlug: "zizmor",
 		},
